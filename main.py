@@ -31,3 +31,4 @@ for step in range(int(duration / dt)):
     if step % print_interval == 0:
         state = car.get_state()
         print(f"{t:>8.1f} {state['speed_mph']:>12.2f} {state['speed_m/s']:>12.2f} {state['position_m']:>14.2f}")
+        

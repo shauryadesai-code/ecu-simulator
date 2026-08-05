@@ -1,7 +1,9 @@
 from vehicle import Vehicle
+from controller import CruiseController
 
 # Create a Vehicle instance using the Jaguar F-Type defaults
 car = Vehicle()
+controller = CruiseController()
 
 # Simulation parameters
 dt = 0.1              # time step in seconds (10 Hz)
@@ -15,13 +17,9 @@ print("-" * 50)
 for step in range(int(duration / dt)):
     t = step * dt
 
-    # Full throttle for first 30 seconds, then coast
-    if t < 30:
-        throttle = 1.0
-    else:
-        throttle = 0.0
+    # # Get throttle/brake decision from the PID controller based on current speed
+    throttle, brake = controller.compute(car.velocity, dt)
 
-    brake = 0.0
     road_grade = 0.0  # flat road for this test
 
     # Update the vehicle state by one time step
@@ -31,4 +29,3 @@ for step in range(int(duration / dt)):
     if step % print_interval == 0:
         state = car.get_state()
         print(f"{t:>8.1f} {state['speed_mph']:>12.2f} {state['speed_m/s']:>12.2f} {state['position_m']:>14.2f}")
-        

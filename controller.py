@@ -21,3 +21,34 @@ class CruiseController:
             brake = min(1.0, -control_output/self.Kp)
         self.previous_error = error
         return throttle, brake
+class AdaptiveCruiseController:
+    def __init__(self, target_speed=30, time_gap=2.0, gap_Kp=5, gap_Ki=0.5, gap_Kd=2.0, gap_max_integral=50):
+        self.cruise_controller = CruiseController(target_speed=target_speed)
+        self.time_gap = time_gap  # desired time gap in seconds
+        self.gap_Kp = gap_Kp
+        self.gap_Ki = gap_Ki
+        self.gap_Kd = gap_Kd
+        self.gap_integral_error = 0.0
+        self.previous_gap_error = 0.0
+        self.gap_max_integral = gap_max_integral  # to prevent integral windup
+    def compute(self, current_speed, lead_position, car_position, dt):
+        actual_gap = lead_position - car_position
+        desired_gap = current_speed * self.time_gap
+        gap_error = actual_gap - desired_gap
+
+        self.gap_integral_error += gap_error * dt
+        self.gap_integral_error = max(min(self.gap_integral_error, self.gap_max_integral), -self.gap_max_integral)
+        gap_derivative = (gap_error - self.previous_gap_error) / dt if dt > 0 else 0.0
+        gap_control_output = (self.gap_Kp * gap_error) + (self.gap_Ki * self.gap_integral_error) + (self.gap_Kd * gap_derivative)
+        self.previous_gap_error = gap_error
+
+        cruise_throttle, cruise_brake = self.cruise_controller.compute(current_speed, dt)
+
+        if gap_control_output < 0:
+            throttle = 0.0
+            brake = min(1.0, -gap_control_output / self.gap_Kp)
+        else:
+           throttle = cruise_throttle
+           brake = cruise_brake
+
+        return throttle, brake

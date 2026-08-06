@@ -1,32 +1,51 @@
 from vehicle import Vehicle
-from controller import CruiseController
+from controller import AdaptiveCruiseController, CruiseController
 
-# Create a Vehicle instance using the Jaguar F-Type defaults
-car = Vehicle()
-car.velocity = 28
-controller = CruiseController(target_speed=28)  # target speed of 28 m/s (~63 mph)
+# Your car
+car = Vehicle(max_traction_force=9200)
+car.velocity = 25.0
+my_controller = AdaptiveCruiseController(target_speed=30.0, time_gap=2.0)
 
-# Simulation parameters
-dt = 0.1              # time step in seconds (10 Hz)
-duration = 60         # total simulation duration in seconds
-print_interval = 10   # print every 10 steps = every 1 second
+# Lead car - starts well ahead
+lead_car = Vehicle(max_traction_force=9200)
+lead_car.velocity = 25.0
+lead_car.position = 60.0  # starts 60m ahead
+lead_controller = CruiseController(target_speed=25.0, Kp=0.15, Ki=0.03, Kd=0.1)
+dt = 0.1
+duration = 60
+print_interval = 10
 
-print(f"{'Time (s)':>8} {'Speed (mph)':>12} {'Speed (m/s)':>12} {'Position (m)':>14}")
-print("-" * 50)
+print(f"{'Time':>6} {'Car(mph)':>10} {'Lead(mph)':>10} {'Gap(m)':>8} {'Throttle':>9} {'Brake':>7}")
+print("-" * 60)
 
-# Run the simulation loop
 for step in range(int(duration / dt)):
     t = step * dt
 
-    # # Get throttle/brake decision from the PID controller based on current speed
-    throttle, brake = controller.compute(car.velocity, dt)
+    # Lead car phase logic
+    if t < 10:
+        lead_controller.target_speed = 25.0
+    elif t < 15:
+        lead_controller.target_speed = 15.0
+    elif t < 25:
+        lead_controller.target_speed = 15.0
+    elif t < 32:
+        lead_controller.target_speed = 30.0
+    elif t < 45:
+        lead_controller.target_speed = 30.0
+    elif t < 50:
+        lead_controller.target_speed = 10.0
+    else:
+        lead_controller.target_speed = 10.0
 
-    road_grade = 0.0  # flat road for this test
+    # Update lead car
+    lead_throttle, lead_brake = lead_controller.compute(lead_car.velocity, dt)
+    lead_car.update(lead_throttle, lead_brake, 0.0, dt)
 
-    # Update the vehicle state by one time step
-    car.update(throttle, brake, road_grade, dt)
+    # Update your car (adaptive)
+    throttle, brake = my_controller.compute(car.velocity, lead_car.position, car.position, dt)
+    car.update(throttle, brake, 0.0, dt)
 
-    # Print state periodically
+    # Print periodically
     if step % print_interval == 0:
-        state = car.get_state()
-        print(f"{t:>8.1f} {state['speed_mph']:>12.2f} {state['speed_m/s']:>12.2f} {state['position_m']:>14.2f}")
+        gap = lead_car.position - car.position
+        print(f"{t:>6.1f} {car.get_state()['speed_mph']:>10.2f} {lead_car.get_state()['speed_mph']:>10.2f} {gap:>8.1f} {throttle:>9.2f} {brake:>7.2f} {lead_throttle:>9.2f}")

@@ -3,7 +3,8 @@ from controller import CruiseController
 
 # Create a Vehicle instance using the Jaguar F-Type defaults
 car = Vehicle()
-controller = CruiseController()
+car.velocity = 28
+controller = CruiseController(target_speed=28)  # target speed of 28 m/s (~63 mph)
 
 # Simulation parameters
 dt = 0.1              # time step in seconds (10 Hz)

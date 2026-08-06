@@ -1,6 +1,6 @@
 import numpy as np
 class Vehicle:
-    def __init__(self, mass=1595, frontal_area=2.07, drag_coefficient=0.36, rolling_resistance_coefficient=0.013, wheel_radius=0.335, max_drive_force=16300,max_brake_force=22000, v_max=85):
+    def __init__(self, mass=1595, frontal_area=2.07, drag_coefficient=0.36, rolling_resistance_coefficient=0.013, wheel_radius=0.335, max_drive_force=5000,max_brake_force=22000, v_max=85):
         self.mass = mass  # in kg
         self.frontal_area = frontal_area  # in m^2
         self.drag_coefficient = drag_coefficient  # dimensionless

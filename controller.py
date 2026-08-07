@@ -1,4 +1,5 @@
 class CruiseController:
+
     def __init__(self, Kp=0.1, Ki=0.02, Kd=0.05,target_speed=30, max_integral=50, ceiling_deadband=50):
         self.Kp = Kp
         self.Ki = Ki
@@ -8,6 +9,7 @@ class CruiseController:
         self.previous_error = 0.0
         self.max_integral = max_integral  # to prevent integral windup
         self.ceiling_deadband = ceiling_deadband  # to prevent control output from becoming too large
+        
     def compute(self,current_speed, dt):
         error = self.target_speed - current_speed
         self.integral_error += error * dt
@@ -25,7 +27,9 @@ class CruiseController:
         # In the deadband - reduce throttle gently rather than cutting hard
            throttle = min(throttle, 0.05)
         return throttle, brake
+    
 class AdaptiveCruiseController:
+
     def __init__(self, target_speed=30, time_gap=2.0, gap_Kp=0.03, gap_Ki=0.005, gap_Kd=0.05, gap_max_integral=50):
         self.cruise_controller = CruiseController(target_speed=target_speed)
         self.time_gap = time_gap  # desired time gap in seconds
@@ -35,9 +39,7 @@ class AdaptiveCruiseController:
         self.gap_integral_error = 0.0
         self.previous_gap_error = 0.0
         self.gap_max_integral = gap_max_integral  # to prevent integral windup
-        self.gap_mode_enter_threshold = -0.5
-        self.gap_mode_exit_threshold = 0.5
-        self.in_gap_mode = False
+
     def compute(self, current_speed, lead_position, car_position, dt):
         actual_gap = lead_position - car_position
         desired_gap = current_speed * self.time_gap
@@ -49,22 +51,21 @@ class AdaptiveCruiseController:
         gap_control_output = (self.gap_Kp * gap_error) + (self.gap_Ki * self.gap_integral_error) + (self.gap_Kd * gap_derivative)
         self.previous_gap_error = gap_error
 
-        if self.in_gap_mode:
+        cruise_throttle, cruise_brake = self.cruise_controller.compute(current_speed, dt)
+        gap_throttle = 0.0
+        gap_brake = max(0.0, min(1.0, -gap_control_output))
 
-            if gap_control_output > self.gap_mode_exit_threshold:
-                self.in_gap_mode = False
+        ratio = actual_gap / desired_gap if desired_gap > 0 else 1.0
+        if ratio >= 1.5:
+            w = 0.0
+        elif ratio <= 0.7:
+            w = 1.0
         else:
+            w = (1.5 - ratio) / (1.5 - 0.7)
 
-            if gap_control_output < self.gap_mode_enter_threshold:
-                self.in_gap_mode = True
-        if self.in_gap_mode:
-            throttle = 0.0
-            brake = max(0.0, min(1.0, -gap_control_output))
-        else:
-            throttle, brake = self.cruise_controller.compute(current_speed, dt)
-            self.gap_integral_error = 0.0
-            
-           
+        throttle = (1 - w) * cruise_throttle + w * gap_throttle
+        brake = (1 - w) * cruise_brake + w * gap_brake
         return throttle, brake
+    
     def get_desired_gap(self, current_speed):
         return current_speed * self.time_gap

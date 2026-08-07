@@ -49,3 +49,5 @@ class AdaptiveCruiseController:
            self.gap_integral_error = 0.0  # Reset integral error when not braking
 
         return throttle, brake
+    def get_desired_gap(self, current_speed):
+        return current_speed * self.time_gap

@@ -21,21 +21,25 @@ print("-" * 60)
 for step in range(int(duration / dt)):
     t = step * dt
 
-    # Lead car phase logic
-    if t < 10:
-        lead_controller.target_speed = 25.0
-    elif t < 15:
-        lead_controller.target_speed = 15.0
-    elif t < 25:
-        lead_controller.target_speed = 15.0
-    elif t < 32:
-        lead_controller.target_speed = 30.0
-    elif t < 45:
-        lead_controller.target_speed = 30.0
-    elif t < 50:
-        lead_controller.target_speed = 10.0
+   # Lead car phase logic - designed to test every behaviour
+    if t < 8:
+        lead_controller.target_speed = 35.0      # fast - lets our car sit at its 67mph ceiling
+    elif t < 16:
+        lead_controller.target_speed = 18.0      # slows down - forces gap-following
+    elif t < 22:
+        lead_controller.target_speed = 18.0      # holds slow - steady gap-following
+    elif t < 30:
+        lead_controller.target_speed = 34.0      # speeds back up past our ceiling - ceiling test
+    elif t < 36:
+        lead_controller.target_speed = 34.0      # holds fast - our car should hold at 67mph
+    elif t < 40:
+        lead_controller.target_speed = 8.0       # SUDDEN hard brake - emergency response test
+    elif t < 46:
+        lead_controller.target_speed = 8.0       # holds very slow - close gap-following
+    elif t < 54:
+        lead_controller.target_speed = 30.0      # accelerates again - another cruise/gap cycle
     else:
-        lead_controller.target_speed = 10.0
+        lead_controller.target_speed = 15.0      # final decel - one more braking event
 
     # Update lead car
     lead_throttle, lead_brake = lead_controller.compute(lead_car.velocity, dt)

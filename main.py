@@ -94,6 +94,21 @@ def traffic_slowdown_phases(t):
     else:
         return 12.0      # final decel - one more braking event
 
+def highway_cruise_phases(t):
+    if t < 15:
+        return 28.0
+    elif t < 35:
+        return 30.0
+    else:
+        return 29.0
 
-run_scenario("Traffic Slowdown", traffic_slowdown_phases)
-    
+def emergency_stop_phases(t):
+    if t < 15:
+        return 30.0
+    elif t < 17:
+        return 3.0
+    else:
+        return 3.0
+
+run_scenario("Highway Cruise", highway_cruise_phases)
+run_scenario("Emergency Stop", emergency_stop_phases)

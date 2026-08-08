@@ -66,6 +66,8 @@ class AdaptiveCruiseController:
         else:
             x = (1.5 - ratio) / (1.5 - 0.7)
             w = x * x * (3 - 2 * x)          # smoothstep: cubic curve, zero slope at both ends
+        print(f"ratio={ratio:.2f}, w={w:.2f}, actual_gap={actual_gap:.1f}, desired_gap={desired_gap:.1f}")   # TEMPORARY DEBUG LINE
+
 
         throttle = (1 - w) * cruise_throttle + w * gap_throttle
         brake = (1 - w) * cruise_brake + w * gap_brake

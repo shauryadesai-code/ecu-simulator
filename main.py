@@ -106,13 +106,13 @@ def highway_cruise_phases(t):
         return 29.0
 
 def emergency_stop_phases(t):
-    if t < 15:
-        return 30.0
-    elif t < 17:
-        return 3.0
+    if t < 6:
+        return 35.0
+    elif t < 6.5:
+        return 2.0
     else:
-        return 3.0
-
+        return 2.0
+    
 def cutin_phases(t):
     return 22.0
 
@@ -126,8 +126,8 @@ def hillclimb_phases(t):
     else:
         return 20.0
 
-run_scenario("Highway Cruise", highway_cruise_phases)
-run_scenario("Traffic Slowdown", traffic_slowdown_phases)
-run_scenario("Emergency Stop", emergency_stop_phases)
-run_scenario("Cut-in", cutin_phases, cutin_time=20.0, cutin_gap=15.0)
-run_scenario("Hill Climb", hillclimb_phases, road_grade=0.08)
+#run_scenario("Highway Cruise", highway_cruise_phases)
+#run_scenario("Traffic Slowdown", traffic_slowdown_phases)
+run_scenario("Emergency Stop", emergency_stop_phases, lead_start_position=20.0)
+#run_scenario("Cut-in", cutin_phases, cutin_time=20.0, cutin_gap=15.0)
+#run_scenario("Hill Climb", hillclimb_phases, road_grade=0.08)

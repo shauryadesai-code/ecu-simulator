@@ -2,7 +2,7 @@ from vehicle import Vehicle
 from controller import AdaptiveCruiseController, CruiseController
 import matplotlib.pyplot as plt
 
-def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_target_speed=60.0, road_grade=0.0):
+def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_target_speed=60.0, road_grade=0.0, cutin_gap=15.0, cutin_time=None, lead_start_position=60.0):
     # Your car
     car = Vehicle(max_traction_force=9200)
     car.velocity = 25.0
@@ -11,7 +11,7 @@ def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_targe
     # Lead car - starts well ahead
     lead_car = Vehicle(max_traction_force=9200)
     lead_car.velocity = 25.0
-    lead_car.position = 60.0  # starts 30m ahead
+    lead_car.position = lead_start_position  
     lead_controller = CruiseController(target_speed=25.0, Kp=0.15, Ki=0.03, Kd=0.1)
     time_history = []
     car_speed_history = []
@@ -25,6 +25,8 @@ def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_targe
 
     for step in range(int(duration / dt)):
         t = step * dt
+        if cutin_time is not None and abs(t - cutin_time) < dt/2:
+            lead_car.position = car.position + cutin_gap
         lead_controller.target_speed = phase_function(t)
         # Update lead car
         lead_throttle, lead_brake = lead_controller.compute(lead_car.velocity, dt)
@@ -43,6 +45,7 @@ def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_targe
 
 
     fig, axes = plt.subplots(3, 1, figsize=(10, 10), sharex=True)
+    fig.suptitle(scenario_name, fontsize=14)
 
     # Graph 1 - Speed comparison
     axes[0].plot(time_history, car_speed_history, label='Your Car', color='blue')
@@ -110,5 +113,21 @@ def emergency_stop_phases(t):
     else:
         return 3.0
 
+def cutin_phases(t):
+    return 22.0
+
+def hillclimb_phases(t):
+    if t < 15:
+        return 26.0
+    elif t < 30:
+        return 18.0
+    elif t < 45:
+        return 26.0
+    else:
+        return 20.0
+
 run_scenario("Highway Cruise", highway_cruise_phases)
+run_scenario("Traffic Slowdown", traffic_slowdown_phases)
 run_scenario("Emergency Stop", emergency_stop_phases)
+run_scenario("Cut-in", cutin_phases, cutin_time=20.0, cutin_gap=15.0)
+run_scenario("Hill Climb", hillclimb_phases, road_grade=0.08)

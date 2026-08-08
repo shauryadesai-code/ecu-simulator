@@ -9,7 +9,7 @@ my_controller = AdaptiveCruiseController(target_speed=30.0, time_gap=2.0)
 # Lead car - starts well ahead
 lead_car = Vehicle(max_traction_force=9200)
 lead_car.velocity = 25.0
-lead_car.position = 60.0  # starts 60m ahead
+lead_car.position = 60.0  # starts 30m ahead
 lead_controller = CruiseController(target_speed=25.0, Kp=0.15, Ki=0.03, Kd=0.1)
 time_history = []
 car_speed_history = []
@@ -28,24 +28,24 @@ for step in range(int(duration / dt)):
     t = step * dt
 
    # Lead car phase logic - designed to test every behaviour
-    if t < 8:
-        lead_controller.target_speed = 35.0      # fast - lets our car sit at its 67mph ceiling
-    elif t < 16:
-        lead_controller.target_speed = 18.0      # slows down - forces gap-following
-    elif t < 22:
-        lead_controller.target_speed = 18.0      # holds slow - steady gap-following
+    if t < 10:
+        lead_controller.target_speed = 32.0      # fast - lets our car sit at its 67mph ceiling
+    elif t < 20:
+        lead_controller.target_speed = 22.0      # slows down - forces gap-following
+    elif t < 28:
+        lead_controller.target_speed = 22.0      # holds slow - steady gap-following
     elif t < 30:
-        lead_controller.target_speed = 34.0      # speeds back up past our ceiling - ceiling test
-    elif t < 36:
-        lead_controller.target_speed = 34.0      # holds fast - our car should hold at 67mph
+        lead_controller.target_speed = 10.0      # speeds back up past our ceiling - ceiling test
+    elif t < 38:
+        lead_controller.target_speed = 10.0      # holds fast - our car should hold at 67mph
     elif t < 40:
-        lead_controller.target_speed = 8.0       # SUDDEN hard brake - emergency response test
-    elif t < 46:
-        lead_controller.target_speed = 8.0       # holds very slow - close gap-following
+        lead_controller.target_speed = 40.0      # slows down - forces gap-following
+    elif t < 52:
+        lead_controller.target_speed = 24.0      # holds slow - steady gap-following
     elif t < 54:
-        lead_controller.target_speed = 30.0      # accelerates again - another cruise/gap cycle
+        lead_controller.target_speed = 12.0      # speeds back up past our ceiling - ceiling test    
     else:
-        lead_controller.target_speed = 15.0      # final decel - one more braking event
+        lead_controller.target_speed = 12.0      # final decel - one more braking event
 
     # Update lead car
     lead_throttle, lead_brake = lead_controller.compute(lead_car.velocity, dt)

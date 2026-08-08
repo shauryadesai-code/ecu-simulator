@@ -1,6 +1,6 @@
 class CruiseController:
 
-    def __init__(self, Kp=0.1, Ki=0.02, Kd=0.05,target_speed=30, max_integral=50, ceiling_deadband=50):
+    def __init__(self, Kp=0.1, Ki=0.02, Kd=0.05,target_speed=30, max_integral=50, ceiling_deadband=0.5):
         self.Kp = Kp
         self.Ki = Ki
         self.Kd = Kd
@@ -9,7 +9,7 @@ class CruiseController:
         self.previous_error = 0.0
         self.max_integral = max_integral  # to prevent integral windup
         self.ceiling_deadband = ceiling_deadband  # to prevent control output from becoming too large
-        
+
     def compute(self,current_speed, dt):
         error = self.target_speed - current_speed
         self.integral_error += error * dt
@@ -19,18 +19,21 @@ class CruiseController:
         self.previous_error = error
         throttle = max(0.0, min(1.0, control_output))
         brake = max(0.0, min(1.0, -control_output))
-        # Ceiling deadband: hard cut only when clearly above target
-        if current_speed >= self.target_speed + self.ceiling_deadband:
-           throttle = 0.0
-           brake = 0.0
-        elif current_speed >= self.target_speed:
-        # In the deadband - reduce throttle gently rather than cutting hard
-           throttle = min(throttle, 0.05)
+        # Smooth throttle rolloff near speed ceiling - no ping-pong at target
+        overshoot = current_speed - self.target_speed
+        if overshoot >= self.ceiling_deadband:
+            throttle = 0.0
+            brake = 0.0
+        elif overshoot > 0:
+            # In the deadband - smoothly reduce throttle from full to zero
+            reduction_factor = 1.0 - (overshoot / self.ceiling_deadband)
+            throttle = throttle * reduction_factor
+    
         return throttle, brake
     
 class AdaptiveCruiseController:
 
-    def __init__(self, target_speed=30, time_gap=2.0, gap_Kp=0.03, gap_Ki=0.005, gap_Kd=0.05, gap_max_integral=50):
+    def __init__(self, target_speed=30, time_gap=2.0, gap_Kp=0.03, gap_Ki=0.005, gap_Kd=0.02, gap_max_integral=50):
         self.cruise_controller = CruiseController(target_speed=target_speed)
         self.time_gap = time_gap  # desired time gap in seconds
         self.gap_Kp = gap_Kp
@@ -61,7 +64,8 @@ class AdaptiveCruiseController:
         elif ratio <= 0.7:
             w = 1.0
         else:
-            w = (1.5 - ratio) / (1.5 - 0.7)
+            x = (1.5 - ratio) / (1.5 - 0.7)
+            w = x * x * (3 - 2 * x)          # smoothstep: cubic curve, zero slope at both ends
 
         throttle = (1 - w) * cruise_throttle + w * gap_throttle
         brake = (1 - w) * cruise_brake + w * gap_brake

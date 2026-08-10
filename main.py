@@ -1,6 +1,8 @@
 from vehicle import Vehicle
 from controller import AdaptiveCruiseController, CruiseController
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.patches import Polygon
 
 def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_target_speed=60.0, road_grade=0.0, cutin_gap=15.0, cutin_time=None, lead_start_position=60.0):
     # Your car
@@ -19,6 +21,8 @@ def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_targe
     actual_gap_history = []
     desired_gap_history = []
     control_effort_history = []
+    car_position_history = []
+    lead_position_history = []
     dt = 0.1
     duration = 60
     print_interval = 10
@@ -42,6 +46,8 @@ def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_targe
         control_effort_history.append(throttle - brake)
         lead_speed_history.append(lead_car.get_state()['speed_mph'])
         car_speed_history.append(car.get_state()['speed_mph'])
+        car_position_history.append(car.position)
+        lead_position_history.append(lead_car.position)
 
 
     fig, axes = plt.subplots(3, 1, figsize=(10, 10), sharex=True)
@@ -74,6 +80,39 @@ def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_targe
 
     plt.tight_layout()
     plt.show()
+    return car_position_history, lead_position_history, time_history
+
+def animate_scenario(scenario_name, car_position_history, lead_position_history, time_history):
+    fig, ax = plt.subplots(figsize=(12, 3))
+    ax.set_xlim(min(car_position_history) - 10, max(lead_position_history) + 10)
+    ax.set_ylim(-5, 5)
+    ax.set_title(scenario_name)
+    ax.set_xlabel('Position (m)')
+    ax.axhline(0, color='gray', linewidth=0.5)
+
+    car_shape = [(-2.0, -1.0), (-2.0, 1.0), (1.0, 1.0), (2.0, 0.5), (2.0, -0.5), (1.0, -1.0)]
+
+    car_patch = Polygon(car_shape, closed=True, facecolor='blue')
+    lead_patch = Polygon(car_shape, closed=True, facecolor='red')
+    ax.add_patch(car_patch)
+    ax.add_patch(lead_patch)
+
+    def update(frame):
+        car_x = car_position_history[frame]
+        lead_x = lead_position_history[frame]
+
+        car_pts = [(x + car_x, y) for x, y in car_shape]
+        lead_pts = [(x + lead_x, y - 2) for x, y in car_shape]
+
+        car_patch.set_xy(car_pts)
+        lead_patch.set_xy(lead_pts)
+
+        return car_patch, lead_patch
+
+    ani = animation.FuncAnimation(fig, update, frames=len(time_history), interval=50, blit=False)
+    plt.show()
+    return ani
+
 
 
 def traffic_slowdown_phases(t):
@@ -126,8 +165,17 @@ def hillclimb_phases(t):
     else:
         return 20.0
 
-#run_scenario("Highway Cruise", highway_cruise_phases)
-#run_scenario("Traffic Slowdown", traffic_slowdown_phases)
-run_scenario("Emergency Stop", emergency_stop_phases, lead_start_position=20.0)
-#run_scenario("Cut-in", cutin_phases, cutin_time=20.0, cutin_gap=15.0)
-#run_scenario("Hill Climb", hillclimb_phases, road_grade=0.08)
+car_pos, lead_pos, times = run_scenario("Highway Cruise", highway_cruise_phases)
+animate_scenario("Highway Cruise (Animated)", car_pos, lead_pos, times)
+
+car_pos, lead_pos, times = run_scenario("Traffic Slowdown", traffic_slowdown_phases)
+animate_scenario("Traffic Slowdown (Animated)", car_pos, lead_pos, times)
+
+car_pos, lead_pos, times = run_scenario("Emergency Stop", emergency_stop_phases, lead_start_position=20.0)
+animate_scenario("Emergency Stop (Animated)", car_pos, lead_pos, times)
+
+car_pos, lead_pos, times = run_scenario("Cut-in", cutin_phases, cutin_time=20.0, cutin_gap=15.0)
+animate_scenario("Cut-in (Animated)", car_pos, lead_pos, times)
+
+car_pos, lead_pos, times = run_scenario("Hill Climb", hillclimb_phases, road_grade=0.08)
+animate_scenario("Hill Climb (Animated)", car_pos, lead_pos, times)

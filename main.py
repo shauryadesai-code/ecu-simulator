@@ -23,6 +23,8 @@ def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_targe
     control_effort_history = []
     car_position_history = []
     lead_position_history = []
+    car_state_history = []
+    lead_state_history = []
     dt = 0.1
     duration = 60
     print_interval = 10
@@ -48,6 +50,19 @@ def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_targe
         car_speed_history.append(car.get_state()['speed_mph'])
         car_position_history.append(car.position)
         lead_position_history.append(lead_car.position)
+        if throttle > 0:
+            car_state_history.append('accelerating')
+        elif brake > 0:
+            car_state_history.append('braking')
+        else:
+            car_state_history.append('neutral')
+
+        if lead_throttle > 0:
+            lead_state_history.append('accelerating')
+        elif lead_brake > 0:
+            lead_state_history.append('braking')
+        else:
+            lead_state_history.append('neutral')
 
 
     fig, axes = plt.subplots(3, 1, figsize=(10, 10), sharex=True)
@@ -80,39 +95,65 @@ def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_targe
 
     plt.tight_layout()
     plt.show()
-    return car_position_history, lead_position_history, time_history
+    return car_position_history, lead_position_history, time_history, car_state_history, lead_state_history
 
-def animate_scenario(scenario_name, car_position_history, lead_position_history, time_history):
+def animate_scenario(scenario_name, car_position_history, lead_position_history, time_history,
+                      car_state_history, lead_state_history, two_lane=False, cutin_time=None):
     fig, ax = plt.subplots(figsize=(12, 3))
     ax.set_xlim(min(car_position_history) - 10, max(lead_position_history) + 10)
-    ax.set_ylim(-5, 5)
+    ax.set_ylim(-6, 6)
     ax.set_title(scenario_name)
     ax.set_xlabel('Position (m)')
-    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.set_yticks([])
+
+    ax.axhline(0, color='gray', linewidth=1.5)
+    if two_lane:
+        ax.axhline(4, color='gray', linewidth=1.5)
 
     car_shape = [(-2.0, -1.0), (-2.0, 1.0), (1.0, 1.0), (2.0, 0.5), (2.0, -0.5), (1.0, -1.0)]
 
-    car_patch = Polygon(car_shape, closed=True, facecolor='blue')
-    lead_patch = Polygon(car_shape, closed=True, facecolor='red')
+    state_colors = {'accelerating': 'green', 'braking': 'red', 'neutral': 'steelblue'}
+
+    car_patch = Polygon(car_shape, closed=True, facecolor='steelblue', edgecolor='black')
+    lead_patch = Polygon(car_shape, closed=True, facecolor='darkorange', edgecolor='black')
     ax.add_patch(car_patch)
     ax.add_patch(lead_patch)
+
+    def get_lead_lane_offset(t):
+        if not two_lane:
+            return 0.0
+        transition_duration = 2.0
+        if cutin_time is None:
+            return 4.0
+        if t < cutin_time - transition_duration:
+            return 4.0
+        elif t < cutin_time:
+            progress = (t - (cutin_time - transition_duration)) / transition_duration
+            return 4.0 * (1 - progress)
+        else:
+            return 0.0
 
     def update(frame):
         car_x = car_position_history[frame]
         lead_x = lead_position_history[frame]
+        t = time_history[frame]
+
+        lead_y = get_lead_lane_offset(t)
 
         car_pts = [(x + car_x, y) for x, y in car_shape]
-        lead_pts = [(x + lead_x, y - 2) for x, y in car_shape]
+        lead_pts = [(x + lead_x, y + lead_y) for x, y in car_shape]
 
         car_patch.set_xy(car_pts)
         lead_patch.set_xy(lead_pts)
+
+        car_patch.set_facecolor(state_colors[car_state_history[frame]])
+        lead_patch.set_facecolor(state_colors[lead_state_history[frame]])
 
         return car_patch, lead_patch
 
     ani = animation.FuncAnimation(fig, update, frames=len(time_history), interval=50, blit=False)
     plt.show()
     return ani
-
 
 
 def traffic_slowdown_phases(t):
@@ -165,17 +206,17 @@ def hillclimb_phases(t):
     else:
         return 20.0
 
-car_pos, lead_pos, times = run_scenario("Highway Cruise", highway_cruise_phases)
-animate_scenario("Highway Cruise (Animated)", car_pos, lead_pos, times)
+car_pos, lead_pos, times, car_state, lead_state = run_scenario("Highway Cruise", highway_cruise_phases)
+animate_scenario("Highway Cruise (Animated)", car_pos, lead_pos, times, car_state, lead_state)
 
-car_pos, lead_pos, times = run_scenario("Traffic Slowdown", traffic_slowdown_phases)
-animate_scenario("Traffic Slowdown (Animated)", car_pos, lead_pos, times)
+car_pos, lead_pos, times, car_state, lead_state = run_scenario("Traffic Slowdown", traffic_slowdown_phases)
+animate_scenario("Traffic Slowdown (Animated)", car_pos, lead_pos, times, car_state, lead_state)
 
-car_pos, lead_pos, times = run_scenario("Emergency Stop", emergency_stop_phases, lead_start_position=20.0)
-animate_scenario("Emergency Stop (Animated)", car_pos, lead_pos, times)
+car_pos, lead_pos, times, car_state, lead_state = run_scenario("Emergency Stop", emergency_stop_phases, lead_start_position=20.0)
+animate_scenario("Emergency Stop (Animated)", car_pos, lead_pos, times, car_state, lead_state)
 
-car_pos, lead_pos, times = run_scenario("Cut-in", cutin_phases, cutin_time=20.0, cutin_gap=15.0)
-animate_scenario("Cut-in (Animated)", car_pos, lead_pos, times)
+car_pos, lead_pos, times, car_state, lead_state = run_scenario("Cut-in", cutin_phases, cutin_time=20.0, cutin_gap=15.0)
+animate_scenario("Cut-in (Animated)", car_pos, lead_pos, times, car_state, lead_state, two_lane=True, cutin_time=20.0)
 
-car_pos, lead_pos, times = run_scenario("Hill Climb", hillclimb_phases, road_grade=0.08)
-animate_scenario("Hill Climb (Animated)", car_pos, lead_pos, times)
+car_pos, lead_pos, times, car_state, lead_state = run_scenario("Hill Climb", hillclimb_phases, road_grade=0.08)
+animate_scenario("Hill Climb (Animated)", car_pos, lead_pos, times, car_state, lead_state)

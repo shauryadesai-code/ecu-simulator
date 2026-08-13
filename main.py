@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.patches import Polygon
 
-def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_target_speed=60.0, road_grade=0.0, cutin_gap=15.0, cutin_time=None, lead_start_position=60.0):
+def run_scenario(scenario_name, phase_function, my_target_speed=30.0, road_grade=0.0, cutin_gap=15.0, cutin_time=None, lead_start_position=60.0):
     # Your car
     car = Vehicle(max_traction_force=9200)
-    car.velocity = 25.0
-    my_controller = AdaptiveCruiseController(target_speed=30.0, time_gap=2.0)
+    car.velocity = my_target_speed
+    my_controller = AdaptiveCruiseController(target_speed=my_target_speed, time_gap=2.0)
 
     # Lead car - starts well ahead
     lead_car = Vehicle(max_traction_force=9200)
@@ -27,7 +27,6 @@ def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_targe
     lead_state_history = []
     dt = 0.1
     duration = 60
-    print_interval = 10
 
     for step in range(int(duration / dt)):
         t = step * dt
@@ -44,7 +43,7 @@ def run_scenario(scenario_name, phase_function, my_target_speed=30.0, lead_targe
 
         actual_gap_history.append(lead_car.position - car.position)
         time_history.append(t)
-        desired_gap_history.append(my_controller.time_gap * car.velocity)
+        desired_gap_history.append(my_controller.get_desired_gap(car.velocity))
         control_effort_history.append(throttle - brake)
         lead_speed_history.append(lead_car.get_state()['speed_mph'])
         car_speed_history.append(car.get_state()['speed_mph'])

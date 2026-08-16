@@ -13,3 +13,39 @@ The simulator models a following vehicle's real world physics: drag, rolling res
 - An ACC that blends cruise and gap-following control continuously and smoothly rather than abrupt changes 
 - Five test scenarios
 - Static graphs and a top down animated view for each scenario
+
+## How to run
+
+### Prerequisites
+
+- Python 3.10 or later
+- pip
+
+### Setup
+
+1. clone respirotory
+git clone https://github.com/shauryadesai-code/ecu-simulator.git
+cd ecu simulator
+2. create and activate a virtual environment (recommended):
+python -m venv venv
+venv\Scripts\activate # Windows
+source venv/bin/activate # macOS/Linux
+3. install dependancies
+pip install requirements.txt
+
+### running
+
+python main.py
+
+running this executes all 5 scenarios in sequence. For each scnenario, a window with 3 static graphs(speed comaprision, following distance, and throttle/brake output) in sequence. closing that window opens a top-down animated view of the same scenario; closing that moves on to the next scenario.
+In total the full run opens 10 windows
+
+### Scenarios
+
+| Scenario | What it tests |
+|---|---|
+| Highway Cruise | Steady-state cruising with a lead vehicle at a similar speed |
+| Traffic Slowdown | Gradual and moderate lead-vehicle speed changes |
+| Emergency Stop | A sudden, sharp drop in lead-vehicle target speed |
+| Cut-in | A vehicle merging into your lane at close range |
+| Hill Climb | Following behaviour on a graded (uphill) road |
